@@ -1,0 +1,38 @@
+name: Actualizar Catalogo Meta
+
+on:
+  schedule:
+    # Se ejecuta a las 04:00 AM hora de Argentina (07:00 UTC)
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Ejecutar script
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+          USER_ID: ${{ secrets.USER_ID }}
+        run: python sync.py
+
+      - name: Guardar cambios y subir CSV
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add meta_catalog.csv
+          git commit -m "Auto-update catalogo [skip ci]" || exit 0
+          git push
