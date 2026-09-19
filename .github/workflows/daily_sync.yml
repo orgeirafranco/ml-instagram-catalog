@@ -1,38 +1,36 @@
-name: Actualizar Catalogo Meta
+name: Generate and Send Reel
 
 on:
-  schedule:
-    # Se ejecuta a las 04:00 AM hora de Argentina (07:00 UTC)
-    - cron: '0 7 * * *'
   workflow_dispatch:
-
-permissions:
-  contents: write
+  schedule:
+    - cron: '0 15 * * *'
 
 jobs:
-  build:
+  build-and-send:
     runs-on: ubuntu-latest
-    steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Ejecutar script
-        env:
-          APP_ID: ${{ secrets.APP_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
-          USER_ID: ${{ secrets.USER_ID }}
-        run: python sync.py
-
-      - name: Guardar cambios y subir CSV
+      - name: Install system dependencies (FFmpeg)
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add meta_catalog.csv
-          git commit -m "Auto-update catalogo [skip ci]" || exit 0
-          git push
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python libraries
+        run: |
+          pip install pandas requests "moviepy<2.0" edge-tts
+
+      - name: Run Reel Generator
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python generate_reel.py
