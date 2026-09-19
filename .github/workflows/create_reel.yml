@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Python libraries
         run: |
-          pip install pandas requests moviepy edge-tts
+          pip install pandas requests "moviepy<2.0" edge-tts
 
       - name: Run Reel Generator
         env:
