@@ -56,10 +56,8 @@ def check_for_discounts():
                     "new_price": current_p,
                     "diff_pct": diff_pct
                 })
-        # Guardamos el precio actual para la próxima comparación
         updated_history[pid] = current_p
 
-    # Si es la primera vez que corre y no hay historial previo, armamos un demo con un producto random
     if not history and valid:
         sample = random.choice(valid)
         curr = clean_price(sample['price'])
@@ -81,16 +79,16 @@ def generate_deal_script(item_data):
     price = prod.get("price", "")
 
     prompt = (
-        f"Sos un copywriter experto en ofertas relámpago de ElectroOrg en Argentina. "
-        f"Escribí un guion comercial EXACTO de 10 segundos para anunciar una baja de precio:\n"
+        f"Sos un copywriter experto en ofertas relampago de ElectroOrg en Argentina. "
+        f"Escribi un guion comercial EXACTO de 10 segundos para anunciar una baja de precio:\n"
         f"Producto: {prod['title']}\n"
         f"Descuento: {pct}% OFF\n"
         f"Precio actual: {price}\n\n"
         f"Reglas estrictas:\n"
-        f"1. LONGITUD: Entre 22 y 26 palabras (locución de 10 segundos clavados).\n"
-        f"2. TONO: Urgencia, entusiasmo vendedor rioplatense ('Mirá esta locura', 'Atención').\n"
+        f"1. LONGITUD: Entre 22 y 26 palabras (locucion de 10 segundos clavados).\n"
+        f"2. TONO: Urgencia, entusiasmo vendedor rioplatense ('Mira esta locura', 'Atencion').\n"
         f"3. ESTRUCTURA: Alerta de oferta + beneficio clave del producto + cierre 'Link en bio antes de que vuele'.\n"
-        f"4. Devolvé ÚNICAMENTE el texto que debe ser leído en voz alta, sin comillas ni emojis."
+        f"4. Devolve UNICAMENTE el texto que debe ser leido en voz alta, sin comillas ni emojis."
     )
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
@@ -105,7 +103,7 @@ def generate_deal_script(item_data):
     except Exception as e:
         print(f"Error con Gemini: {e}")
 
-    return f"Atención! Bajó de precio este {prod['title']} con un descuento imperdible. Aprovechalo hoy mismo ingresando al link de nuestra bio en ElectroOrg."
+    return f"Atencion! Bajo de precio este {prod['title']} con un descuento imperdible. Aprovechalo hoy mismo ingresando al link de nuestra bio en ElectroOrg."
 
 async def create_audio_and_subtitles(text):
     communicate = edge_tts.Communicate(text, "es-AR-TomasNeural")
@@ -141,7 +139,6 @@ def build_video():
     clip = clip.set_audio(audio)
     clip.write_videofile("temp_raw.mp4", fps=24, codec="libx264", audio_codec="aac")
 
-    # Subtítulos en rojo/naranja llamativo (&H0000A5FF) de oferta con borde negro
     sub_style = (
         "subtitles=subtitles.srt:force_style='"
         "FontName=Liberation Sans,"
@@ -171,9 +168,9 @@ def send_telegram(item_data, script):
     prod = item_data["product"]
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendVideo"
     caption = (
-        f"⚡ *¡OFERTA RELÁMPAGO DETECTADA!* ⚡\n\n"
-        f"🔥 *{prod['title']}*\n"
-        f"💰 *Precio con {item_data['diff_pct']}% OFF:* {prod.get('price', '')}\n\n"
+        f"⚡ ¡OFERTA RELÁMPAGO DETECTADA! ⚡\n\n"
+        f"🔥 {prod['title']}\n"
+        f"💰 Precio con {item_data['diff_pct']}% OFF: {prod.get('price', '')}\n\n"
         f"{script}\n\n"
         f"👉 Link directo de compra: {prod['link']}\n\n"
         f"#ElectroOrg #OfertaRelampago #Descuentos #Tecnologia"
@@ -181,7 +178,7 @@ def send_telegram(item_data, script):
     with open("deal_reel.mp4", "rb") as video:
         res = requests.post(
             url,
-            data={"chat_id": TELEGRAM_CHAT_ID, "caption": caption, "parse_mode": "Markdown"},
+            data={"chat_id": TELEGRAM_CHAT_ID, "caption": caption},
             files={"video": video},
             timeout=120
         )
@@ -202,4 +199,4 @@ if __name__ == "__main__":
         download_image(prod['image_link'])
         build_video()
         send_telegram(deal, script)
-        print("¡Reel de oferta relámpago enviado exitosamente a Telegram!")
+        print("¡Reel de oferta relampago enviado exitosamente a Telegram!")
