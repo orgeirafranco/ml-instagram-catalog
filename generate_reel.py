@@ -6,9 +6,9 @@ import asyncio
 import edge_tts
 from moviepy.editor import ImageClip, AudioFileClip
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+GEMINI_API_KEY = (os.environ.get("GEMINI_API_KEY") or "").strip()
+TELEGRAM_BOT_TOKEN = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
 
 def get_product():
     df = pd.read_csv("meta_catalog.csv")
@@ -20,20 +20,23 @@ def generate_script(product):
     price = product.get('price', '')
     
     prompt = (
-        f"Sos un copywriter experto en ventas en Argentina para la tienda ElectroOrg. "
+        f"Sos un copywriter experto en ventas para ElectroOrg en Argentina. "
         f"Escribí una locución publicitaria para un Reel de 15 segundos sobre este producto:\n"
         f"Producto: {title}\n"
         f"Precio: {price}\n\n"
         f"Reglas estrictas:\n"
         f"1. Usá español rioplatense sutil, vendedor y fluido.\n"
-        f"2. Gancho en los primeros 3 segundos con una necesidad o problema común.\n"
-        f"3. Resaltá 2 beneficios clave del producto.\n"
+        f"2. Gancho en los primeros 3 segundos con una necesidad o problema cotidiano.\n"
+        f"3. Resaltá 2 beneficios directos.\n"
         f"4. Llamado a la acción final: 'Pedilo hoy con link en bio en ElectroOrg'.\n"
         f"5. Devolvé ÚNICAMENTE el texto que debe ser leído en voz alta, sin acotaciones ni emojis."
     )
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY
+    }
     payload = {
         "contents": [{
             "parts": [{"text": prompt}]
@@ -46,12 +49,11 @@ def generate_script(product):
         if "candidates" in data and len(data["candidates"]) > 0:
             return data["candidates"][0]["content"]["parts"][0]["text"].strip()
         else:
-            print(f"Respuesta de Gemini API: {data}")
+            print(f"Respuesta Gemini API: {data}")
     except Exception as e:
         print(f"Error llamando a Gemini: {e}")
         
-    # Guion de respaldo por si la API tiene demora o cuota excedida
-    return f"Buscás la mejor calidad y potencia? Mirá este {title}. Rendimiento increíble y al mejor precio. Conseguilo con envío rápido ingresando al link de nuestra bio en ElectroOrg."
+    return f"Buscás calidad y el mejor rendimiento? Mirá este {title}. Al mejor precio y con garantía. Pedilo hoy con link en nuestra bio en ElectroOrg."
 
 async def create_audio(text):
     communicate = edge_tts.Communicate(text, "es-AR-TomasNeural")
@@ -66,7 +68,7 @@ def build_video():
     audio = AudioFileClip("voice.mp3")
     duration = audio.duration + 0.5
     
-    # Formato vertical Reel 9:16 (1080x1920)
+    # Formato vertical 9:16 (1080x1920)
     clip = (
         ImageClip("product.jpg")
         .set_duration(duration)
@@ -92,7 +94,7 @@ def send_telegram(product, script):
             url,
             data={"chat_id": TELEGRAM_CHAT_ID, "caption": caption, "parse_mode": "Markdown"},
             files={"video": video},
-            timeout=60
+            timeout=90
         )
 
 if __name__ == "__main__":
