@@ -1,0 +1,43 @@
+name: Monitor ML Questions and Draft Answers
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'  # Corre automáticamente cada 15 minutos
+
+jobs:
+  check-questions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python libraries
+        run: |
+          pip install requests
+
+      - name: Run Questions Monitor
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+          USER_ID: ${{ secrets.USER_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python ml_questions_monitor.py
+
+      - name: Commit answered questions history
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add answered_questions.json || true
+          git commit -m "chore: update questions history [skip ci]" || echo "Sin nuevas preguntas"
+          git push || true
